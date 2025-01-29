@@ -7,15 +7,10 @@ mod algorithm;
 mod editor;
 
 // TODO
-// [ ] - Implement MDCT on DCT splitting blocks in half
-// [ ] - Add some interface to modify MDCT values.
-// [ ] - Add delay of BLOCK_SIZE on data to fix noise
-// [ ] - Implement effects
 // [ ] - Rethink names of the effects. Add tips on what they do. Improve readability
 // [ ] - Implement ParamSlider for Vizia Knobs
 // [ ] - Restyle plugin
 // [ ] - Make the editor lock its aspect ratio on linux
-// [ ] -
 
 struct Crunchy {
     params: Arc<CrunchyParams>,

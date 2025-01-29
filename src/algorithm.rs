@@ -1,6 +1,5 @@
 use crate::CrunchyParams;
 use nih_plug::buffer::Buffer;
-use nih_plug::nih_log;
 use nih_plug::plugin::ProcessStatus;
 use std::sync::Arc;
 

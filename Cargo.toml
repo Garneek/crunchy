@@ -8,8 +8,11 @@ default = ["debug"]
 debug = []
 
 [dependencies]
-nih_plug = {path = "../nih-plug"}
-nih_plug_vizia = {path = "../nih-plug/nih_plug_vizia"}
+nih_plug = { git = "https://github.com/ardura/nih-plug.git"}
+nih_plug_vizia = { git = "https://github.com/ardura/nih-plug.git"}
+
+# nih_plug = {path = "../nih-plug"}
+# nih_plug_vizia = {path = "../nih-plug/nih_plug_vizia"}
 image = {version = "0.24.6", default-features = false, features = ["png"]}
 
 serde = { version = "1.0", features = ["derive"] }
