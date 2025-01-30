@@ -24,7 +24,11 @@ struct EditorData {
 impl Model for EditorData {}
 
 pub(crate) fn default_state() -> Arc<ViziaState> {
-    ViziaState::new(|| (600 * 2 / 3, 732 * 2 / 3))
+    #[cfg(not(feature = "debug"))]
+    return ViziaState::new(|| (600 * 2 / 3, 732 * 2 / 3));
+
+    #[cfg(feature = "debug")]
+    return ViziaState::new(|| (600 * 2 / 3, 732 * 2 / 3));
 }
 
 fn load_data_into_context(cx: &mut Context) {
@@ -88,6 +92,37 @@ fn knobs_container(cx: &mut Context) {
     .class("knobs-vertical-subcontainer");
 }
 
+fn ui(cx: &mut Context) {
+    #[cfg(not(feature = "debug"))]
+    VStack::new(cx, |cx| {
+        VStack::new(cx, |cx| {
+            Label::new(cx, "Jest kranczips, jest impreza")
+                .class("plugin-title")
+                .text_align(TextAlign::Center)
+                .top(Pixels(8_f32));
+        })
+        .class("title-container");
+        VStack::new(cx, |cx| {
+            knobs_container(cx);
+        })
+        .class("knobs-main-container");
+    })
+    .class("background-image-class");
+
+    #[cfg(feature = "debug")]
+    VStack::new(cx, |cx| {
+        DebugLabel::new(cx)
+            .class("plugin-title")
+            .width(Pixels(300_f32));
+        Label::new(cx, "test1")
+            .class("plugin-title")
+            .width(Pixels(350_f32))
+            .top(Pixels(50_f32));
+    })
+    .class("knobs-main-container");
+    ResizeHandle::new(cx);
+}
+
 pub(crate) fn create(
     params: Arc<CrunchyParams>,
     state: Arc<ViziaState>,
@@ -100,21 +135,6 @@ pub(crate) fn create(
         }
         .build(cx);
 
-        VStack::new(cx, |cx| {
-            VStack::new(cx, |cx| {
-                Label::new(cx, "Jest kranczips, jest impreza")
-                    .class("plugin-title")
-                    .text_align(TextAlign::Center)
-                    .top(Pixels(8_f32));
-            })
-            .class("title-container");
-            VStack::new(cx, |cx| {
-                knobs_container(cx);
-            })
-            .class("knobs-main-container");
-        })
-        .class("background-image-class");
-
-        ResizeHandle::new(cx);
+        ui(cx);
     })
 }

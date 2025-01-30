@@ -4,30 +4,34 @@ version = "0.1.0"
 edition = "2021"
 
 [features]
-default = ["debug"]
-debug = []
+# default = ["debug"]
+default = []
+debug = ["nih_plug_vizia/debug"]
 
 [dependencies]
-nih_plug = { git = "https://github.com/ardura/nih-plug.git"}
-nih_plug_vizia = { git = "https://github.com/ardura/nih-plug.git"}
+nih_plug = { git = "https://github.com/Garneek/nih-plug.git", features = ["assert_process_allocs"], branch = "dev"}
+nih_plug_vizia = { git = "https://github.com/Garneek/nih-plug.git", branch = "dev"}
 
 # nih_plug = {path = "../nih-plug"}
 # nih_plug_vizia = {path = "../nih-plug/nih_plug_vizia"}
-image = {version = "0.24.6", default-features = false, features = ["png"]}
 
+image = {version = "0.24.6", default-features = false, features = ["png"]}
 serde = { version = "1.0", features = ["derive"] }
 
 [workspace]
 members = ["xtask"]
 
-[profile.dev]
-opt-level = 3
-
-[profile.release]
-opt-level = 3
-
 [lib]
 path = "src/lib.rs"
 crate-type = ["cdylib"]
 
+[profile.release]
+opt-level = 3
+debug = false
+debug-assertions = false
+codegen-units = 16
 
+[profile.dev]
+opt-level = 0
+codegen-units = 16
+debug = true

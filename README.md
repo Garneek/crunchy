@@ -7,6 +7,7 @@ Run
 ``cargo xtask bundle crunchy-plugin --release``
 in project root
 # Known issues
+- plugin cannot be resized in Ableton Live 12 Lite
 - plugin cannot be resized in Waveform 13
 - plugin generates noise in Waveform 13
 - the gui is unresponsive

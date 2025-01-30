@@ -1,4 +1,3 @@
-
 .background-image-class{
   background-image: url("background_image.png");
   background-size: cover;
@@ -24,7 +23,7 @@
   border-color: rgba(43, 41, 45, 0.3);
   border-radius: 6px;
   
-  background-color: rgba(56, 53, 57, 0.3);
+  background-color: rgba(56, 53, 57, 0.5);
 }
 
 .plugin-title{

@@ -168,7 +168,7 @@ impl Plugin for Crunchy {
 impl ClapPlugin for Crunchy {
     const CLAP_ID: &'static str = "garneek.crunchy";
     const CLAP_DESCRIPTION: Option<&'static str> = Some("Jest Crunchips jest impreza");
-    const CLAP_MANUAL_URL: Option<&'static str> = Some(Self::URL);
+    const CLAP_MANUAL_URL: Option<&'static str> = None;
     const CLAP_SUPPORT_URL: Option<&'static str> = None;
     const CLAP_FEATURES: &'static [ClapFeature] = &[
         ClapFeature::AudioEffect,
