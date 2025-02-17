@@ -1,3 +1,6 @@
+// Following code is mostly copied from Actuate project
+// https://github.com/ardura/Actuate/blob/main/src/CustomWidgets/ui_knob.rs
+
 // Ardura 2024 update - ui_knob.rs - egui + nih-plug parameter widget with customization
 //  this ui_knob.rs is built off a2aaron's knob base as part of nyasynth and Robbert's ParamSlider code
 // https://github.com/a2aaron/nyasynth/blob/canon/src/ui_knob.rs
@@ -5,7 +8,6 @@
 use std::{
     f32::consts::TAU,
     ops::{Add, Mul, Sub},
-    str::RMatchIndices,
 };
 
 use lazy_static::lazy_static;
