@@ -4,22 +4,14 @@ version = "0.1.0"
 edition = "2021"
 
 [features]
-# default = ["debug"]
 default = []
-debug = []#["nih_plug_vizia/debug"]
+debug = []
 
 [dependencies]
-# nih_plug = { git = "https://github.com/robbert-vdh/nih-plug.git", features = ["assert_process_allocs"], branch = "dev"}
-# nih_plug_vizia = { git = "https://github.com/robbert-vdh/nih-plug.git" }#, branch = "dev"}
-# nih_plug_egui = { git = "https://github.com/robbert-vdh/nih-plug.git" }
 nih_plug = { git = "https://github.com/ardura/nih-plug.git", rev = "de315f902d7b5a75f80bc9d4164e4485bf2b34a1", features = ["assert_process_allocs"] }
 nih_plug_egui = { git = "https://github.com/ardura/nih-plug.git", rev = "de315f902d7b5a75f80bc9d4164e4485bf2b34a1" }
 
 image = {version = "0.25.5", features = ["png"]}
-
-# nih_plug = {path = "../nih-plug"}
-# nih_plug_vizia = {path = "../nih-plug/nih_plug_vizia"}
-
 lazy_static = "1.4.0"
 serde = { version = "1.0", features = ["derive"] }
 

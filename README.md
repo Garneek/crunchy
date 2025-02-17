@@ -6,15 +6,17 @@ The project is still very much work in progress and might not work on all DAWs.
 Run
 ``cargo xtask bundle crunchy-plugin --release``
 in project root
+
 # Known issues
-- plugin cannot be resized in most DAWs on Windows
 - plugin generates noise in Waveform 13
 - the gui is unresponsive
-- sliders are weird looking
-- in some DAWs the window might be resizable beyond its aspect ratio
+- the effects cause noticable difference in loudness of the sound
+- there is a sudden jump between 0% and 0.5% for both effects
+- the knobs do no redraw correctly on small parameter changes
 
 # TODO
-- improve readability of the text
-- design/copy knobs for ParamSlider interface
 - rethink the names of parameters as they might be confusing
-- restyle the plugin
+- test the plugin on all platforms
+- benchmark the following DCT optimisations:
+- > Fixed point numbers
+- > 10.1016/j.dsp.2008.11.004
