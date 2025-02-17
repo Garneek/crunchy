@@ -43,7 +43,7 @@ impl SingleChannelProcessor {
 
             self.mdct.mdct(block, self.dct_buffer.as_mut_slice());
 
-            let crunch = (params_block.crunch[BLOCK_SIZE / 2] / 100_f32).powi(2);
+            let crunch = params_block.crunch[BLOCK_SIZE / 2].powi(2);
 
             if crunch != 0_f32 {
                 let crunch_clamp = 1.01_f32 - crunch;
@@ -56,7 +56,7 @@ impl SingleChannelProcessor {
                 }
             }
 
-            let crush = params_block.crush[BLOCK_SIZE / 2] / 100_f32;
+            let crush = params_block.crush[BLOCK_SIZE / 2];
 
             if crush != 0_f32 {
                 let crush_multiplier = (1_f32 - crush) * 256_f32 + 16_f32;
@@ -71,8 +71,8 @@ impl SingleChannelProcessor {
             for i in 0..len {
                 // Apply mix and gain
                 block[i] = block[i].mul_add(
-                    params_block.mix[i] / 100_f32,
-                    self.mix_buffer[i] * (1_f32 - params_block.mix[i] / 100_f32),
+                    params_block.mix[i],
+                    self.mix_buffer[i] * (1_f32 - params_block.mix[i]),
                 ) * params_block.gain[i];
             }
 
