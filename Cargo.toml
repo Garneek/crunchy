@@ -1,7 +1,11 @@
 [package]
 name = "crunchy-plugin"
-version = "0.1.0"
+version = "0.2.0"
 edition = "2021"
+
+authors = ["Garneek"]
+description = "DCT clip/bitcrush"
+license = "GNU General Public License v3.0"
 
 [features]
 default = []
