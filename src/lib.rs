@@ -1,25 +1,25 @@
-use algorithm::DCTCrush;
 use nih_plug::prelude::*;
-use nih_plug_vizia::ViziaState;
+use nih_plug_egui::EguiState;
 use std::sync::Arc;
 
-mod algorithm;
 mod editor;
 
+mod dsp;
+use dsp::CrunchySingleChannelProcessor;
+
+use dsp_core::DspCoreProcessor;
+
 // TODO
-// [ ] - Implement MDCT on DCT splitting blocks in half
-// [ ] - Add some interface to modify MDCT values.
-// [ ] - Add delay of BLOCK_SIZE on data to fix noise
-// [ ] - Implement effects
-// [ ] - Rethink names of the effects. Add tips on what they do. Improve readability
-// [ ] - Implement ParamSlider for Vizia Knobs
-// [ ] - Restyle plugin
-// [ ] - Make the editor lock its aspect ratio on linux
-// [ ] -
+// [ ] - Rethink names of the effects
+// [ ] - Test odd block sizes
+// [ ] - Properly test ableton, FL, waveform, LMMS, reaper on all platforms
+// [ ] - MacOS build
+
+const BLOCK_SIZE: usize = 64;
 
 struct Crunchy {
     params: Arc<CrunchyParams>,
-    algorithm: DCTCrush,
+    dsp: Option<DspCoreProcessor<CrunchySingleChannelProcessor>>,
 }
 
 impl Default for Crunchy {
@@ -28,15 +28,15 @@ impl Default for Crunchy {
 
         Self {
             params: params.clone(),
-            algorithm: DCTCrush::new(params.clone()),
+            dsp: None,
         }
     }
 }
 
 #[derive(Params)]
-struct CrunchyParams {
+pub struct CrunchyParams {
     #[persist = "editor-state"]
-    editor_state: Arc<ViziaState>,
+    editor_state: Arc<EguiState>,
 
     #[id = "drive"]
     pub drive: FloatParam,
@@ -71,35 +71,41 @@ impl Default for CrunchyParams {
 
             crunch: FloatParam::new(
                 "Crunch",
-                20_f32,
+                0.2_f32,
                 FloatRange::Linear {
                     min: 0_f32,
-                    max: 100_f32,
+                    max: 1_f32,
                 },
             )
             .with_smoother(SmoothingStyle::Linear(50_f32))
-            .with_unit(" %"),
+            .with_unit(" %")
+            .with_value_to_string(formatters::v2s_f32_percentage(2))
+            .with_string_to_value(formatters::s2v_f32_percentage()),
 
             crush: FloatParam::new(
                 "Crush",
-                20_f32,
+                0.2_f32,
                 FloatRange::Linear {
                     min: 0_f32,
-                    max: 100_f32,
+                    max: 1_f32,
                 },
             )
             .with_smoother(SmoothingStyle::Linear(50_f32))
-            .with_unit(" %"),
+            .with_unit(" %")
+            .with_value_to_string(formatters::v2s_f32_percentage(2))
+            .with_string_to_value(formatters::s2v_f32_percentage()),
             mix: FloatParam::new(
                 "Mix",
-                100_f32,
+                1_f32,
                 FloatRange::Linear {
                     min: 0_f32,
-                    max: 100_f32,
+                    max: 1_f32,
                 },
             )
             .with_smoother(SmoothingStyle::Linear(50_f32))
-            .with_unit(" %"),
+            .with_unit(" %")
+            .with_value_to_string(formatters::v2s_f32_percentage(2))
+            .with_string_to_value(formatters::s2v_f32_percentage()),
             gain: FloatParam::new(
                 "Gain",
                 util::db_to_gain(0.0),
@@ -118,10 +124,10 @@ impl Default for CrunchyParams {
 }
 
 impl Plugin for Crunchy {
-    const NAME: &'static str = "Crunch";
+    const NAME: &'static str = "Crunchy";
     const VENDOR: &'static str = "Garneek";
-    const URL: &'static str = "url";
-    const EMAIL: &'static str = "email";
+    const URL: &'static str = "https://github.com/Garneek/crunchy";
+    const EMAIL: &'static str = "";
 
     const VERSION: &'static str = env!("CARGO_PKG_VERSION");
 
@@ -153,10 +159,20 @@ impl Plugin for Crunchy {
 
     fn initialize(
         &mut self,
-        _audio_io_layout: &AudioIOLayout,
+        audio_io_layout: &AudioIOLayout,
         _buffer_config: &BufferConfig,
         _context: &mut impl InitContext<Self>,
     ) -> bool {
+        self.dsp = Some(DspCoreProcessor::new(
+            self.params.clone(),
+            BLOCK_SIZE,
+            match audio_io_layout.main_input_channels {
+                Some(v) => v.get() as usize,
+                None => {
+                    return false;
+                }
+            },
+        ));
         true
     }
 
@@ -166,15 +182,19 @@ impl Plugin for Crunchy {
         _aux: &mut AuxiliaryBuffers,
         _context: &mut impl ProcessContext<Self>,
     ) -> ProcessStatus {
-        self.algorithm.process(buffer)
+        if let Some(algo) = &mut self.dsp {
+            algo.process(buffer)
+        } else {
+            ProcessStatus::Error("DSP data not initialized")
+        }
     }
 }
 
 impl ClapPlugin for Crunchy {
     const CLAP_ID: &'static str = "garneek.crunchy";
-    const CLAP_DESCRIPTION: Option<&'static str> = Some("Jest Crunchips jest impreza");
-    const CLAP_MANUAL_URL: Option<&'static str> = Some(Self::URL);
-    const CLAP_SUPPORT_URL: Option<&'static str> = None;
+    const CLAP_DESCRIPTION: Option<&'static str> = Some("DCT clip/bitcrush");
+    const CLAP_MANUAL_URL: Option<&'static str> = None;
+    const CLAP_SUPPORT_URL: Option<&'static str> = Some("https://github.com/Garneek/crunchy");
     const CLAP_FEATURES: &'static [ClapFeature] = &[
         ClapFeature::AudioEffect,
         ClapFeature::Stereo,

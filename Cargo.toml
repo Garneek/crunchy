@@ -1,30 +1,40 @@
 [package]
 name = "crunchy-plugin"
-version = "0.1.0"
+version = "0.2.0"
 edition = "2021"
 
+authors = ["Garneek"]
+description = "DCT clip/bitcrush"
+license = "GNU General Public License v3.0"
+
 [features]
-default = ["debug"]
+default = []
 debug = []
 
 [dependencies]
-nih_plug = {path = "../nih-plug"}
-nih_plug_vizia = {path = "../nih-plug/nih_plug_vizia"}
-image = {version = "0.24.6", default-features = false, features = ["png"]}
+nih_plug = { git = "https://github.com/ardura/nih-plug.git", rev = "de315f902d7b5a75f80bc9d4164e4485bf2b34a1", features = ["assert_process_allocs"] }
+nih_plug_egui = { git = "https://github.com/ardura/nih-plug.git", rev = "de315f902d7b5a75f80bc9d4164e4485bf2b34a1" }
 
+image = {version = "0.25.5", features = ["png"]}
+lazy_static = "1.4.0"
 serde = { version = "1.0", features = ["derive"] }
 
+dsp_core = {path = "dsp_core"}
+
 [workspace]
-members = ["xtask"]
+members = [
+  "xtask",
+  "dsp_core",
+  
+]
 
-[profile.dev]
-opt-level = 3
-
-[profile.release]
-opt-level = 3
 
 [lib]
 path = "src/lib.rs"
 crate-type = ["cdylib"]
 
+[profile.release]
+opt-level = 3
 
+[profile.dev]
+opt-level = 3
