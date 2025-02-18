@@ -7,14 +7,14 @@ mod algorithm;
 mod editor;
 
 // TODO
-// [ ] - Rethink names of the effects. Add tips on what they do. Improve readability
-// [ ] - Implement ParamSlider for Vizia Knobs
-// [ ] - Restyle plugin
-// [ ] - Make the editor lock its aspect ratio on linux
+// [ ] - Rethink names of the effects
+// [ ] - Test odd block sizes
+// [ ] - Properly test ableton, FL, waveform, LMMS, reaper on all platforms
+// [ ] - MacOS build
 
 struct Crunchy {
     params: Arc<CrunchyParams>,
-    algorithm: DCTCrush,
+    algorithm: Option<DCTCrush>,
 }
 
 impl Default for Crunchy {
@@ -23,7 +23,7 @@ impl Default for Crunchy {
 
         Self {
             params: params.clone(),
-            algorithm: DCTCrush::new(params.clone()),
+            algorithm: None,
         }
     }
 }
@@ -158,6 +158,7 @@ impl Plugin for Crunchy {
         _buffer_config: &BufferConfig,
         _context: &mut impl InitContext<Self>,
     ) -> bool {
+        self.algorithm = Some(DCTCrush::new(self.params.clone()));
         true
     }
 
@@ -167,7 +168,11 @@ impl Plugin for Crunchy {
         _aux: &mut AuxiliaryBuffers,
         _context: &mut impl ProcessContext<Self>,
     ) -> ProcessStatus {
-        self.algorithm.process(buffer)
+        if let Some(algo) = &mut self.algorithm {
+            algo.process(buffer)
+        } else {
+            ProcessStatus::Error("DSP data not initialized")
+        }
     }
 }
 

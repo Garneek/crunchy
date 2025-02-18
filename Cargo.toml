@@ -23,5 +23,7 @@ path = "src/lib.rs"
 crate-type = ["cdylib"]
 
 [profile.release]
+opt-level = 3
 
 [profile.dev]
+opt-level = 3

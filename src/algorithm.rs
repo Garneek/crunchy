@@ -29,108 +29,155 @@ impl SingleChannelProcessor {
         }
     }
 
-    fn process_block(&mut self, block: &mut [f32], params_block: &ParamsBlock) -> ProcessStatus {
+    fn process_block(
+        &mut self,
+        block: &[f32],
+        output: &mut [f32],
+        params_block: &ParamsBlock,
+    ) -> ProcessStatus {
         let len: usize = block.len();
-        if len != BLOCK_SIZE {
-            ProcessStatus::Error("Block size not divisible by 64. Fix later")
-        } else {
-            // Clone block for mix
-            self.delay_buffer.clone_from_slice(block);
-            // Apply drive
-            for i in 0..len {
-                block[i] *= params_block.drive[i];
-            }
-
-            self.mdct.mdct(block, self.dct_buffer.as_mut_slice());
-
-            let crunch = params_block.crunch[BLOCK_SIZE / 2].powi(2);
-
-            if crunch != 0_f32 {
-                let crunch_clamp = 1.01_f32 - crunch;
-                let crunch_gain = 1_f32 / crunch_clamp.sqrt(); // RETHINK IF GAIN IS WELL MADE
-
-                for i in 0..BLOCK_SIZE * 2 {
-                    self.dct_buffer[i] = self.dct_buffer[i]
-                        .clamp(-CRUNCH_MAX * crunch_clamp, CRUNCH_MAX * crunch_clamp);
-                    self.dct_buffer[i] *= crunch_gain;
-                }
-            }
-
-            let crush = params_block.crush[BLOCK_SIZE / 2];
-
-            if crush != 0_f32 {
-                let crush_multiplier = (1_f32 - crush) * 256_f32 + 16_f32;
-                for i in 0..BLOCK_SIZE * 2 {
-                    self.dct_buffer[i] =
-                        (self.dct_buffer[i] * crush_multiplier).round() / crush_multiplier;
-                }
-            }
-
-            self.mdct.imdct(self.dct_buffer.as_mut_slice(), block);
-
-            for i in 0..len {
-                // Apply mix and gain
-                block[i] = block[i].mul_add(
-                    params_block.mix[i],
-                    self.mix_buffer[i] * (1_f32 - params_block.mix[i]),
-                ) * params_block.gain[i];
-            }
-
-            self.mix_buffer.clone_from(&self.delay_buffer);
-
-            ProcessStatus::Normal
+        // Clone block for mix
+        self.delay_buffer.copy_from_slice(block);
+        // Apply drive
+        for i in 0..len {
+            output[i] = block[i] * params_block.drive[i];
         }
+
+        self.mdct.mdct(output, self.dct_buffer.as_mut_slice());
+
+        let crunch = params_block.crunch[BLOCK_SIZE / 2].powi(2);
+
+        if crunch != 0_f32 {
+            let crunch_clamp = 1.01_f32 - crunch;
+            let crunch_gain = 1_f32 / crunch_clamp.sqrt(); // RETHINK IF GAIN IS WELL MADE
+
+            for i in 0..BLOCK_SIZE * 2 {
+                self.dct_buffer[i] =
+                    self.dct_buffer[i].clamp(-CRUNCH_MAX * crunch_clamp, CRUNCH_MAX * crunch_clamp);
+                self.dct_buffer[i] *= crunch_gain;
+            }
+        }
+
+        let crush = params_block.crush[BLOCK_SIZE / 2];
+
+        if crush != 0_f32 {
+            let crush_multiplier = (1_f32 - crush) * 256_f32 + 16_f32;
+            for i in 0..BLOCK_SIZE * 2 {
+                self.dct_buffer[i] =
+                    (self.dct_buffer[i] * crush_multiplier).round() / crush_multiplier;
+            }
+        }
+
+        self.mdct.imdct(self.dct_buffer.as_mut_slice(), output);
+
+        for i in 0..len {
+            // Apply mix and gain
+            output[i] = output[i].mul_add(
+                params_block.mix[i],
+                self.mix_buffer[i] * (1_f32 - params_block.mix[i]),
+            ) * params_block.gain[i];
+        }
+
+        self.mix_buffer.copy_from_slice(&self.delay_buffer);
+
+        ProcessStatus::Normal
     }
 }
 
 pub struct DCTCrush {
-    channels: [SingleChannelProcessor; CHANNELS],
+    channel_processor: [SingleChannelProcessor; CHANNELS],
+
+    overflow: usize,
+    temp: [f32; BLOCK_SIZE],
+    buffer: [[f32; BLOCK_SIZE]; CHANNELS],
+
     params_block: ParamsBlock,
-    params: Arc<CrunchyParams>,
 }
 
 impl DCTCrush {
     pub fn new(params: Arc<CrunchyParams>) -> Self {
-        let params_block = ParamsBlock::default();
         Self {
-            channels: core::array::from_fn(|_| SingleChannelProcessor::new()),
-            params_block,
-            params,
+            channel_processor: core::array::from_fn(|i| SingleChannelProcessor::new()),
+            overflow: BLOCK_SIZE,
+            temp: [0_f32; BLOCK_SIZE],
+            buffer: [[0_f32; BLOCK_SIZE]; CHANNELS],
+
+            params_block: ParamsBlock::new(params),
         }
     }
 
     pub fn process(&mut self, buffer: &mut Buffer) -> ProcessStatus {
-        for block in buffer.iter_blocks(BLOCK_SIZE) {
-            let mut block_channels = block.1.into_iter();
+        let samples = buffer.samples();
+        let channels = buffer.channels().min(CHANNELS);
+        let slice = buffer.as_slice();
 
-            self.params_block
-                .from_params(self.params.clone(), BLOCK_SIZE);
+        if slice.len() == 0 {
+            return ProcessStatus::Error("No channels");
+        }
 
-            match self.channels[0].process_block(
-                match block_channels.next() {
-                    Some(v) => v,
-                    None => {
-                        return ProcessStatus::Error("Not enough channels (less then one)");
-                    }
-                },
-                &self.params_block,
-            ) {
-                ProcessStatus::Error(e) => return ProcessStatus::Error(e),
-                _ => {}
-            }
+        let mut index = BLOCK_SIZE - self.overflow;
+        if index != 0 {
+            for channel in 0..channels {
+                self.temp[0..self.overflow]
+                    .copy_from_slice(&self.buffer[channel][0..self.overflow]);
 
-            if let Some(v) = block_channels.next() {
-                match self.channels[1].process_block(v, &self.params_block) {
+                self.temp[self.overflow..BLOCK_SIZE].copy_from_slice(&slice[channel][0..index]);
+                slice[channel][0..index]
+                    .copy_from_slice(&self.buffer[channel][self.overflow..BLOCK_SIZE]);
+
+                self.params_block.from_params(BLOCK_SIZE);
+                match self.channel_processor[channel].process_block(
+                    &self.temp,
+                    &mut self.buffer[channel],
+                    &self.params_block,
+                ) {
                     ProcessStatus::Error(e) => return ProcessStatus::Error(e),
                     _ => {}
+                };
+            }
+            self.overflow = BLOCK_SIZE;
+        }
+
+        let index_static = index;
+        for _ in 0..(samples - index_static) / BLOCK_SIZE {
+            for channel in 0..channels {
+                self.temp
+                    .copy_from_slice(&slice[channel][index..index + BLOCK_SIZE]);
+                slice[channel][index..index + BLOCK_SIZE]
+                    .copy_from_slice(&self.buffer[channel][0..BLOCK_SIZE]);
+
+                self.params_block.from_params(BLOCK_SIZE);
+                match self.channel_processor[channel].process_block(
+                    &self.temp,
+                    &mut self.buffer[channel],
+                    &self.params_block,
+                ) {
+                    ProcessStatus::Error(e) => return ProcessStatus::Error(e),
+                    _ => {}
+                };
+            }
+            index += BLOCK_SIZE;
+        }
+
+        if index != samples {
+            self.overflow = samples - index;
+
+            for channel in 0..channels {
+                let mut t;
+                for i in 0..self.overflow {
+                    t = slice[channel][i + index];
+                    slice[channel][i + index] = self.buffer[channel][i];
+                    self.buffer[channel][i] = t;
                 }
             }
         }
+
         ProcessStatus::Normal
     }
 }
 
 pub struct ParamsBlock {
+    params: Arc<CrunchyParams>,
     drive: [f32; BLOCK_SIZE],
     crunch: [f32; BLOCK_SIZE],
     crush: [f32; BLOCK_SIZE],
@@ -138,9 +185,10 @@ pub struct ParamsBlock {
     gain: [f32; BLOCK_SIZE],
 }
 
-impl Default for ParamsBlock {
-    fn default() -> Self {
+impl ParamsBlock {
+    fn new(params: Arc<CrunchyParams>) -> Self {
         Self {
+            params,
             drive: [0_f32; BLOCK_SIZE],
             crunch: [0_f32; BLOCK_SIZE],
             crush: [0_f32; BLOCK_SIZE],
@@ -148,24 +196,25 @@ impl Default for ParamsBlock {
             gain: [0_f32; BLOCK_SIZE],
         }
     }
-}
 
-impl ParamsBlock {
-    fn from_params(&mut self, params: Arc<CrunchyParams>, len: usize) {
-        params
+    fn from_params(&mut self, len: usize) {
+        self.params
             .drive
             .smoothed
             .next_block(self.drive.as_mut_slice(), len);
-        params
+        self.params
             .crunch
             .smoothed
             .next_block(self.crunch.as_mut_slice(), len);
-        params
+        self.params
             .crush
             .smoothed
             .next_block(self.crush.as_mut_slice(), len);
-        params.mix.smoothed.next_block(self.mix.as_mut_slice(), len);
-        params
+        self.params
+            .mix
+            .smoothed
+            .next_block(self.mix.as_mut_slice(), len);
+        self.params
             .gain
             .smoothed
             .next_block(self.gain.as_mut_slice(), len);
