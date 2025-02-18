@@ -8,11 +8,10 @@ Run
 in project root
 
 # Known issues
-- plugin generates noise in Waveform 13
-- the gui is unresponsive
 - the effects cause noticable difference in loudness of the sound
 - there is a sudden jump between 0% and 0.5% for both effects
 - the knobs do no redraw correctly on small parameter changes
+- when both effects are maxed out the sound is fully muted
 
 # TODO
 - rethink the names of parameters as they might be confusing

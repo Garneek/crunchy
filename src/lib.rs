@@ -1,10 +1,13 @@
-use algorithm::DCTCrush;
 use nih_plug::prelude::*;
 use nih_plug_egui::EguiState;
 use std::sync::Arc;
 
-mod algorithm;
 mod editor;
+
+mod dsp;
+use dsp::CrunchySingleChannelProcessor;
+
+use dsp_core::DspCoreProcessor;
 
 // TODO
 // [ ] - Rethink names of the effects
@@ -12,9 +15,11 @@ mod editor;
 // [ ] - Properly test ableton, FL, waveform, LMMS, reaper on all platforms
 // [ ] - MacOS build
 
+const BLOCK_SIZE: usize = 64;
+
 struct Crunchy {
     params: Arc<CrunchyParams>,
-    algorithm: Option<DCTCrush>,
+    dsp: Option<DspCoreProcessor<CrunchySingleChannelProcessor>>,
 }
 
 impl Default for Crunchy {
@@ -23,13 +28,13 @@ impl Default for Crunchy {
 
         Self {
             params: params.clone(),
-            algorithm: None,
+            dsp: None,
         }
     }
 }
 
 #[derive(Params)]
-struct CrunchyParams {
+pub struct CrunchyParams {
     #[persist = "editor-state"]
     editor_state: Arc<EguiState>,
 
@@ -154,11 +159,20 @@ impl Plugin for Crunchy {
 
     fn initialize(
         &mut self,
-        _audio_io_layout: &AudioIOLayout,
+        audio_io_layout: &AudioIOLayout,
         _buffer_config: &BufferConfig,
         _context: &mut impl InitContext<Self>,
     ) -> bool {
-        self.algorithm = Some(DCTCrush::new(self.params.clone()));
+        self.dsp = Some(DspCoreProcessor::new(
+            self.params.clone(),
+            BLOCK_SIZE,
+            match audio_io_layout.main_input_channels {
+                Some(v) => v.get() as usize,
+                None => {
+                    return false;
+                }
+            },
+        ));
         true
     }
 
@@ -168,7 +182,7 @@ impl Plugin for Crunchy {
         _aux: &mut AuxiliaryBuffers,
         _context: &mut impl ProcessContext<Self>,
     ) -> ProcessStatus {
-        if let Some(algo) = &mut self.algorithm {
+        if let Some(algo) = &mut self.dsp {
             algo.process(buffer)
         } else {
             ProcessStatus::Error("DSP data not initialized")

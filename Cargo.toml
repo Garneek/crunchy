@@ -15,8 +15,15 @@ image = {version = "0.25.5", features = ["png"]}
 lazy_static = "1.4.0"
 serde = { version = "1.0", features = ["derive"] }
 
+dsp_core = {path = "dsp_core"}
+
 [workspace]
-members = ["xtask"]
+members = [
+  "xtask",
+  "dsp_core",
+  
+]
+
 
 [lib]
 path = "src/lib.rs"
