@@ -1,0 +1,56 @@
+name: test_mac
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  test_mac:
+    runs-on: macos-latest
+
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Download a Build Artifact
+      uses: actions/download-artifact@v4.1.8
+      with:
+        # Name of the artifact to download. If unspecified, all artifacts for the run are downloaded.
+        name: macos_build
+        # Destination path. Supports basic tilde expansion. Defaults to $GITHUB_WORKSPACE
+        path: .
+
+    - name: Download necessary software
+      run: |
+        # Download Carla
+        curl -L https://github.com/falkTX/Carla/releases/download/v2.5.9/Carla-2.5.9-macOS-universal.dmg > Carla.dmg
+        
+        # Mount image and copy App file
+        hdiutil attach Carla.dmg
+        cp -r /Volumes/Carla-2.5.9-universal/Carla.app .
+        
+        # Download Jack
+        curl -L https://github.com/jackaudio/jack2-releases/releases/download/v1.9.22/jack2-macOS-universal-v1.9.22.tar.gz > Jack.tar.gz
+        
+        # Unpack Jack
+        tar -xzvf Jack.tar.gz
+        
+    - name: Unpack build
+      run: |
+        unzip macos_build.zip
+    - name: Run tests
+      run: |
+        # Start Jack
+        QjackCtl.app/Contents/MacOS/QjackCtl -s &
+
+        # Start Carla with timeout of 10s
+        Carla.app/Contents/MacOS/carla-bridge-native vst3 crunchy-plugin.vst3 label > log.txt 2>&1 & sleep 10; kill $!
+    - uses: actions/upload-artifact@v4
+      with:
+        name: macos_test_results
+        path: log.txt
+        if-no-files-found: warn
