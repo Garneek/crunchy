@@ -38,6 +38,9 @@ jobs:
         
         # Unpack Jack
         tar -xzvf Jack.tar.gz
+
+        # Install Jack
+        sudo installer -pkg jack2-osx-1.9.22.pkg -target /
         
     - name: Run tests
       run: |
