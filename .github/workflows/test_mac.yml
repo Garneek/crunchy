@@ -40,7 +40,7 @@ jobs:
         # Start Jack
         QjackCtl.app/Contents/MacOS/QjackCtl -s &
         
-        sleep 5
+        sleep 15
         
         # Start Carla with timeout of 10s
         Carla.app/Contents/MacOS/carla-bridge-native vst3 crunchy-plugin.vst3 label > log.txt 2>&1 & sleep 10; kill $!
