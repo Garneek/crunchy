@@ -1,29 +1,29 @@
 name: test_mac
 
 on:
-  workflow_run:
-    workflows: ["build"]
-    branches: [main]
-    types:
-      - completed
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
 
 env:
   CARGO_TERM_COLOR: always
-
+  
 jobs:
   test_mac:
     runs-on: macos-latest
-
     steps:
-    - uses: actions/checkout@v4
-    
-    - name: Download a Build Artifact
-      uses: actions/download-artifact@v4
-      with:
-        # Name of the artifact to download. If unspecified, all artifacts for the run are downloaded.
-        name: macos_build
-        run-id: ${{ github.event.workflow_run.id }}
+    - uses: actions/checkout@v3
+    - name: Run bundler
+      run: |  
+        rustup target add x86_64-apple-darwin
+        rustup target add aarch64-apple-darwin
+        
+        export MACOSX_DEPLOYMENT_TARGET=10.13
+        cargo xtask bundle-universal crunchy-plugin --release
 
+        cp -r target/bundled/* .
+        
     - name: Download necessary software
       run: |
         # Download Carla
