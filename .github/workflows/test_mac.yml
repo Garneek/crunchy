@@ -13,19 +13,12 @@ jobs:
   test_mac:
     runs-on: macos-latest
     steps:
-    - uses: actions/checkout@v3
-    - name: Run bundler
-      run: |  
-        rustup target add x86_64-apple-darwin
-        rustup target add aarch64-apple-darwin
-        
-        export MACOSX_DEPLOYMENT_TARGET=10.13
-        cargo xtask bundle-universal crunchy-plugin --release
-
-        cp -r target/bundled/* .
-        
+       
     - name: Download necessary software
       run: |
+        curl -L https://github.com/Garneek/crunchy/releases/download/v.0.2.0/crunchy-vst3-macos.zip > macos_build.zip
+        unzip macos_build.zip
+        
         # Download Carla
         curl -L https://github.com/falkTX/Carla/releases/download/v2.5.9/Carla-2.5.9-macOS-universal.dmg > Carla.dmg
         
@@ -46,10 +39,13 @@ jobs:
       run: |
         # Start Jack
         QjackCtl.app/Contents/MacOS/QjackCtl -s &
-
+        
+        sleep 5
+        
         # Start Carla with timeout of 10s
         Carla.app/Contents/MacOS/carla-bridge-native vst3 crunchy-plugin.vst3 label > log.txt 2>&1 & sleep 10; kill $!
     - uses: actions/upload-artifact@v4
+      if: always()
       with:
         name: macos_test_results
         path: log.txt
