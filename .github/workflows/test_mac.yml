@@ -37,7 +37,7 @@ jobs:
         
     - name: Run tests
       run: |
-        sudo /System/Library/CoreServices/RemoteManagement/ARDAgent.app/Contents/Resources/kickstart -activate -configure -access -on -clientopts -setvnclegacy -vnclegacy yes -clientopts -setvncpw -vncpw password1 -restart -agent -privs -all
+        brew  install --cask xquartz
       
         #ls -R
         #QjackCtl.app/Contents/MacOS/QjackCtl -v
