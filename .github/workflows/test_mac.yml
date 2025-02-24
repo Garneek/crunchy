@@ -37,6 +37,9 @@ jobs:
         
     - name: Run tests
       run: |
+        ls -R
+        QjackCtl.app/Contents/MacOS/QjackCtl -v
+      
         # Start Jack
         QjackCtl.app/Contents/MacOS/QjackCtl -s &
         
