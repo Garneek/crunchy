@@ -1,10 +1,10 @@
 use crate::CrunchyParams;
 use std::sync::Arc;
 
-use dsp_core::ParamsBlock;
-use dsp_core::SingleChannelProcessor;
-use dsp_core::MDCT;
 use nih_plug::plugin::ProcessStatus;
+use plugin_utils::dsp_utils::ParamsBlock;
+use plugin_utils::dsp_utils::SingleChannelProcessor;
+use plugin_utils::dsp_utils::MDCT;
 
 const CRUNCH_MAX: f32 = 0.05_f32;
 

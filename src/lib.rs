@@ -6,14 +6,10 @@ mod editor;
 
 mod dsp;
 use dsp::CrunchySingleChannelProcessor;
-
-use dsp_core::DspCoreProcessor;
+use plugin_utils::dsp_utils::DspCoreProcessor;
 
 // TODO
 // [ ] - Rethink names of the effects
-// [ ] - Test odd block sizes
-// [ ] - Properly test ableton, FL, waveform, LMMS, reaper on all platforms
-// [ ] - MacOS build
 
 const BLOCK_SIZE: usize = 64;
 
