@@ -1,12 +1,32 @@
 use crate::CrunchyParams;
 use std::sync::Arc;
 
-use dsp_core::ParamsBlock;
-use dsp_core::SingleChannelProcessor;
-use dsp_core::MDCT;
 use nih_plug::plugin::ProcessStatus;
 
-const CRUNCH_MAX: f32 = 0.05_f32;
+use plugin_utils::dsp_utils::numerical_functions::quartic;
+use plugin_utils::dsp_utils::rescale_normalized_value;
+use plugin_utils::dsp_utils::rescalers::ln;
+use plugin_utils::dsp_utils::rescalers::ln_reversed_unscaled_default;
+use plugin_utils::dsp_utils::ParamsBlock;
+use plugin_utils::dsp_utils::SingleChannelProcessor;
+use plugin_utils::dsp_utils::MDCT;
+
+const CRUSH_RESCALE_MIN: f32 = 0.1_f32;
+const CRUSH_RESCALE_MAX: f32 = 0.98_f32;
+const CRUSH_GAIN_A: f32 = 0.008_f32;
+const CRUSH_GAIN_B: i32 = 35;
+const CRUSH_MULTIPLIER_A: f32 = 128_f32;
+const CRUSH_MULTIPLIER_B: f32 = 2_f32;
+
+const CRUNCH_GAIN_QUARTIC_A: f32 = -106.38591_f32;
+const CRUNCH_GAIN_QUARTIC_B: f32 = 168.68996_f32;
+const CRUNCH_GAIN_QUARTIC_C: f32 = -95.357_f32;
+const CRUNCH_GAIN_QUARTIC_D: f32 = 12.67889_f32;
+const CRUNCH_GAIN_LINEAR_A: f32 = -100_f32;
+const CRUNCH_GAIN_LINEAR_B: f32 = 97_f32;
+const CRUNCH_MULTIPLIER: f32 = 0.1_f32;
+const CRUNCH_CLAMP_A: f32 = -4.99_f32;
+const CRUNCH_CLAMP_B: f32 = 5_f32;
 
 pub struct CrunchySingleChannelProcessor {
     mdct: MDCT,
@@ -47,23 +67,51 @@ impl SingleChannelProcessor for CrunchySingleChannelProcessor {
 
         self.mdct.mdct(output, self.dct_buffer.as_mut_slice());
 
-        let crunch = params_block.crunch[self.block_size / 2].powi(2);
+        let mut compound_gain = 1_f32;
 
+        let crunch = params_block.crunch[self.block_size / 2];
         if crunch != 0_f32 {
-            let crunch_clamp = 1.01_f32 - crunch;
-            let crunch_gain = 1_f32 / crunch_clamp.sqrt(); // RETHINK IF GAIN IS WELL MADE
+            compound_gain = 0.1_f32.powf(
+                (quartic(
+                    crunch,
+                    CRUNCH_GAIN_QUARTIC_A,
+                    CRUNCH_GAIN_QUARTIC_B,
+                    CRUNCH_GAIN_QUARTIC_C,
+                    CRUNCH_GAIN_QUARTIC_D,
+                    if crunch > 0.97 {
+                        crunch.mul_add(CRUNCH_GAIN_LINEAR_A, CRUNCH_GAIN_LINEAR_B)
+                    } else {
+                        0_f32
+                    },
+                )) * 0.05_f32,
+            );
+
+            let crunch = ln(crunch, 0.001).sqrt();
+
+            let crunch_clamp = crunch.mul_add(CRUNCH_CLAMP_A, CRUNCH_CLAMP_B);
 
             for i in 0..self.block_size * 2 {
-                self.dct_buffer[i] =
-                    self.dct_buffer[i].clamp(-CRUNCH_MAX * crunch_clamp, CRUNCH_MAX * crunch_clamp);
-                self.dct_buffer[i] *= crunch_gain;
+                self.dct_buffer[i] = self.dct_buffer[i].clamp(
+                    -CRUNCH_MULTIPLIER * crunch_clamp,
+                    CRUNCH_MULTIPLIER * crunch_clamp,
+                );
             }
         }
 
         let crush = params_block.crush[self.block_size / 2];
-
         if crush != 0_f32 {
-            let crush_multiplier = (1_f32 - crush) * 256_f32 + 16_f32;
+            let crush = rescale_normalized_value(crush, CRUSH_RESCALE_MIN, CRUSH_RESCALE_MAX);
+
+            compound_gain *= if crush > 0.85_f32 {
+                (crush + CRUSH_GAIN_A).powi(CRUSH_GAIN_B).exp()
+            } else {
+                1_f32
+            };
+
+            let crush = ln_reversed_unscaled_default(crush);
+
+            let crush_multiplier = crush.mul_add(CRUSH_MULTIPLIER_A, CRUSH_MULTIPLIER_B);
+
             for i in 0..self.block_size * 2 {
                 self.dct_buffer[i] =
                     (self.dct_buffer[i] * crush_multiplier).round() / crush_multiplier;
@@ -72,8 +120,15 @@ impl SingleChannelProcessor for CrunchySingleChannelProcessor {
 
         self.mdct.imdct(self.dct_buffer.as_mut_slice(), output);
 
+        // Apply gain correction
+        if compound_gain != 1_f32 {
+            for i in 0..len {
+                output[i] *= compound_gain;
+            }
+        }
+
+        // Apply mix and gain
         for i in 0..len {
-            // Apply mix and gain
             output[i] = output[i].mul_add(
                 params_block.mix[i],
                 self.mix_buffer[i] * (1_f32 - params_block.mix[i]),
@@ -88,13 +143,13 @@ impl SingleChannelProcessor for CrunchySingleChannelProcessor {
 
 pub struct CrunchyParamsBlock {
     params: Arc<CrunchyParams>,
-    block_size: usize,
+    pub block_size: usize,
 
-    drive: Vec<f32>,
-    crunch: Vec<f32>,
-    crush: Vec<f32>,
-    mix: Vec<f32>,
-    gain: Vec<f32>,
+    pub drive: Vec<f32>,
+    pub crunch: Vec<f32>,
+    pub crush: Vec<f32>,
+    pub mix: Vec<f32>,
+    pub gain: Vec<f32>,
 }
 
 impl ParamsBlock for CrunchyParamsBlock {

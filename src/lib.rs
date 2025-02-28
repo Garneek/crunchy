@@ -5,15 +5,12 @@ use std::sync::Arc;
 mod editor;
 
 mod dsp;
-use dsp::CrunchySingleChannelProcessor;
-
-use dsp_core::DspCoreProcessor;
+pub use dsp::CrunchyParamsBlock;
+pub use dsp::CrunchySingleChannelProcessor;
+pub use plugin_utils::dsp_utils::DspCoreProcessor;
 
 // TODO
 // [ ] - Rethink names of the effects
-// [ ] - Test odd block sizes
-// [ ] - Properly test ableton, FL, waveform, LMMS, reaper on all platforms
-// [ ] - MacOS build
 
 const BLOCK_SIZE: usize = 64;
 
@@ -210,5 +207,7 @@ impl Vst3Plugin for Crunchy {
         &[Vst3SubCategory::Fx, Vst3SubCategory::Distortion];
 }
 
+#[cfg(not(feature = "test"))]
 nih_export_clap!(Crunchy);
+#[cfg(not(feature = "test"))]
 nih_export_vst3!(Crunchy);

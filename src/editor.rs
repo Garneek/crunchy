@@ -1,10 +1,6 @@
-#[macro_use]
-mod image_macros;
-use image_macros::background_image;
-
-mod widgets;
 use nih_plug::prelude::ParamSetter;
-use widgets::*;
+
+use plugin_utils::egui_utils::*;
 
 mod style;
 use style::*;
@@ -19,18 +15,12 @@ use nih_plug::editor::Editor;
 
 use nih_plug_egui::create_egui_editor;
 use nih_plug_egui::egui;
+use nih_plug_egui::egui::CentralPanel;
 use nih_plug_egui::EguiState;
 
 fn load_images(cx: &egui::Context) -> HashMap<&'static str, egui::TextureHandle> {
     let mut map = HashMap::new();
     insert_handle_to_map_from_bytes!(map, cx, "../resources/background.png", "background", 1_f64);
-    insert_handle_to_map_from_bytes!(
-        map,
-        cx,
-        "../resources/background.png",
-        "background_scaled",
-        1_f64 / 5_f64
-    );
     map
 }
 
@@ -41,6 +31,22 @@ pub(crate) struct UserState {
 impl Default for UserState {
     fn default() -> Self {
         Self { handles: None }
+    }
+}
+
+impl UserState {
+    fn get_handle_ref(&self, name: &str) -> &egui::TextureHandle {
+        match &self.handles {
+            Some(handles) => match handles.get(name) {
+                Some(v) => v,
+                None => {
+                    panic!("Could not find requested image");
+                }
+            },
+            None => {
+                panic!("Images were not initialized");
+            }
+        }
     }
 }
 
@@ -179,4 +185,28 @@ pub(crate) fn create(params: Arc<CrunchyParams>, state: Arc<EguiState>) -> Optio
                 });
         },
     )
+}
+
+pub fn background_image<T>(
+    outer_ui: &mut egui::Ui,
+    user_state: &crate::editor::UserState,
+    frame: egui::Frame,
+    image: &str,
+    ui_callback: T,
+) -> egui::InnerResponse<()>
+where
+    T: Fn(&mut egui::Ui),
+{
+    egui::CentralPanel::default()
+        .frame(frame)
+        .show_inside(outer_ui, |ui| {
+            let mut image_rect = ui.available_rect_before_wrap();
+            image_rect.set_height(ui.available_height() + 2_f32);
+            egui::Image::from_texture(egui::load::SizedTexture::from_handle(
+                user_state.get_handle_ref(image),
+            ))
+            .paint_at(ui, image_rect);
+
+            ui_callback(ui);
+        })
 }
