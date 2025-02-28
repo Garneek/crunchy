@@ -5,8 +5,9 @@ use std::sync::Arc;
 mod editor;
 
 mod dsp;
-use dsp::CrunchySingleChannelProcessor;
-use plugin_utils::dsp_utils::DspCoreProcessor;
+pub use dsp::CrunchyParamsBlock;
+pub use dsp::CrunchySingleChannelProcessor;
+pub use plugin_utils::dsp_utils::DspCoreProcessor;
 
 // TODO
 // [ ] - Rethink names of the effects
@@ -206,5 +207,7 @@ impl Vst3Plugin for Crunchy {
         &[Vst3SubCategory::Fx, Vst3SubCategory::Distortion];
 }
 
+#[cfg(not(feature = "test"))]
 nih_export_clap!(Crunchy);
+#[cfg(not(feature = "test"))]
 nih_export_vst3!(Crunchy);

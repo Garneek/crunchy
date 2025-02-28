@@ -21,13 +21,6 @@ use nih_plug_egui::EguiState;
 fn load_images(cx: &egui::Context) -> HashMap<&'static str, egui::TextureHandle> {
     let mut map = HashMap::new();
     insert_handle_to_map_from_bytes!(map, cx, "../resources/background.png", "background", 1_f64);
-    insert_handle_to_map_from_bytes!(
-        map,
-        cx,
-        "../resources/background.png",
-        "background_scaled",
-        1_f64 / 5_f64
-    );
     map
 }
 

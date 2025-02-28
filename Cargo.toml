@@ -9,7 +9,7 @@ license = "GNU General Public License v3.0"
 
 [features]
 default = []
-debug = []
+test = ["plugin-utils/test"]
 
 [dependencies]
 nih_plug = { git = "https://github.com/ardura/nih-plug.git", rev = "de315f902d7b5a75f80bc9d4164e4485bf2b34a1", features = ["assert_process_allocs"] }
@@ -19,7 +19,7 @@ image = {version = "0.25.5", features = ["png"]}
 lazy_static = "1.4.0"
 serde = { version = "1.0", features = ["derive"] }
 
-plugin-utils = { git = "https://github.com/Garneek/plugin-utils.git" }
+plugin-utils = { git = "https://github.com/Garneek/plugin-utils.git", branch = "dev"}
 
 [workspace]
 members = [
@@ -28,7 +28,11 @@ members = [
 
 [lib]
 path = "src/lib.rs"
-crate-type = ["cdylib"]
+crate-type = ["cdylib", "lib"]
+
+[[bin]]
+name = "main"
+path = "src/main.rs"
 
 [profile.release]
 opt-level = 3

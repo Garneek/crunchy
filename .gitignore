@@ -23,3 +23,5 @@ Cargo.lock
 plugins/
 *.mp3
 Makefile
+*-plot.png
+*-data.txt
