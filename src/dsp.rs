@@ -67,7 +67,7 @@ impl SingleChannelProcessor for CrunchySingleChannelProcessor {
 
         self.mdct.mdct(output, self.dct_buffer.as_mut_slice());
 
-        let mut gain_compensation = 0_f32;
+        let mut gain_compensation = 1_f32;
 
         // Apply crush effect. Bitcrushes DCT coefficients
         let crush = params_block.crush[self.block_size / 2];
