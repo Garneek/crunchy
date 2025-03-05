@@ -34,6 +34,7 @@ macro_rules! plot_param_rms {
 fn main() {
     use crunchy_plugin::CrunchyParams;
     use crunchy_plugin::CrunchyParamsBlock;
+    // use plugin_utils::dsp_utils::benchmark;
     use plugin_utils::dsp_utils::plot;
     use plugin_utils::dsp_utils::PlotParamData;
     use plugin_utils::dsp_utils::PlotType;
@@ -46,6 +47,15 @@ fn main() {
         params_block.mix = vec![1_f32; params_block.block_size];
         params_block.gain = vec![1_f32; params_block.block_size];
     };
+
+    let default_params = |params_block: &mut CrunchyParamsBlock| {
+        params_block.drive = vec![1_f32; params_block.block_size];
+        params_block.crunch = vec![0.2_f32; params_block.block_size];
+        params_block.crush = vec![0.2_f32; params_block.block_size];
+        params_block.mix = vec![1_f32; params_block.block_size];
+        params_block.gain = vec![1_f32; params_block.block_size];
+    };
+
     let db_params = PlotParamData {
         param_min: -30_f32,
         param_max: 30_f32,
@@ -56,13 +66,16 @@ fn main() {
         param_max: 1_f32,
         param_db: false,
     };
-    // plot_param_mean_peak!(crunch, "crunch", pr_params, zero_params);
-    // plot_param_mean_peak!(crush, "crush", pr_params, zero_params);
-    plot_param_rms!(crunch, "crunch", pr_params, zero_params);
+    // plot_param_rms!(crunch, "crunch", pr_params, zero_params);
     // plot_param_rms!(crush, "crush", pr_params, zero_params);
 
-    // plot_param_mean_peak!(gain, "gain", db_params, zero_params);
-    // plot_param_rms!(gain, "gain", db_params, zero_params);
+    // benchmark::<crunchy_plugin::CrunchySingleChannelProcessor>(
+    //     Arc::new(CrunchyParams::default()),
+    //     default_params,
+    //     64,
+    //     440,
+    //     "herdbound.mp3",
+    // );
 }
 
 #[cfg(not(feature = "test"))]

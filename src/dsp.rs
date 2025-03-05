@@ -67,11 +67,38 @@ impl SingleChannelProcessor for CrunchySingleChannelProcessor {
 
         self.mdct.mdct(output, self.dct_buffer.as_mut_slice());
 
-        let mut compound_gain = 1_f32;
+        let mut gain_compensation = 0_f32;
 
+        // Apply crush effect. Bitcrushes DCT coefficients
+        let crush = params_block.crush[self.block_size / 2];
+        if crush != 0_f32 {
+            // Scale value from [0, 1] to [A, B], to remove extreme values, which either do
+            // not affect the sound, or silence it completely
+            let crush = rescale_normalized_value(crush, CRUSH_RESCALE_MIN, CRUSH_RESCALE_MAX);
+
+            // Calculate gain compensation
+            gain_compensation = if crush > 0.85_f32 {
+                (crush + CRUSH_GAIN_A).powi(CRUSH_GAIN_B).exp()
+            } else {
+                1_f32
+            };
+
+            // Apply a function that makes the effect ramp-up steeper
+            let crush = ln_reversed_unscaled_default(crush);
+            let crush_multiplier = crush.mul_add(CRUSH_MULTIPLIER_A, CRUSH_MULTIPLIER_B);
+
+            // Bitcrush all DCT coefficients
+            for i in 0..self.block_size * 2 {
+                self.dct_buffer[i] =
+                    (self.dct_buffer[i] * crush_multiplier).round() / crush_multiplier;
+            }
+        }
+
+        // Apply crunch effect. Clips the DCT coefficients
         let crunch = params_block.crunch[self.block_size / 2];
         if crunch != 0_f32 {
-            compound_gain = 0.1_f32.powf(
+            // Calculate gain compensation
+            gain_compensation *= 0.1_f32.powf(
                 (quartic(
                     crunch,
                     CRUNCH_GAIN_QUARTIC_A,
@@ -86,10 +113,14 @@ impl SingleChannelProcessor for CrunchySingleChannelProcessor {
                 )) * 0.05_f32,
             );
 
+            // Apply a function that makes the effect ramp-up steeper. In this case we
+            // stack both ln and sqrt functions
             let crunch = ln(crunch, 0.001).sqrt();
 
+            // Rescale crunch from [0, 1] to the desired value
             let crunch_clamp = crunch.mul_add(CRUNCH_CLAMP_A, CRUNCH_CLAMP_B);
 
+            // Clamp DCT coefficients
             for i in 0..self.block_size * 2 {
                 self.dct_buffer[i] = self.dct_buffer[i].clamp(
                     -CRUNCH_MULTIPLIER * crunch_clamp,
@@ -98,32 +129,12 @@ impl SingleChannelProcessor for CrunchySingleChannelProcessor {
             }
         }
 
-        let crush = params_block.crush[self.block_size / 2];
-        if crush != 0_f32 {
-            let crush = rescale_normalized_value(crush, CRUSH_RESCALE_MIN, CRUSH_RESCALE_MAX);
-
-            compound_gain *= if crush > 0.85_f32 {
-                (crush + CRUSH_GAIN_A).powi(CRUSH_GAIN_B).exp()
-            } else {
-                1_f32
-            };
-
-            let crush = ln_reversed_unscaled_default(crush);
-
-            let crush_multiplier = crush.mul_add(CRUSH_MULTIPLIER_A, CRUSH_MULTIPLIER_B);
-
-            for i in 0..self.block_size * 2 {
-                self.dct_buffer[i] =
-                    (self.dct_buffer[i] * crush_multiplier).round() / crush_multiplier;
-            }
-        }
-
         self.mdct.imdct(self.dct_buffer.as_mut_slice(), output);
 
         // Apply gain correction
-        if compound_gain != 1_f32 {
+        if gain_compensation != 1_f32 {
             for i in 0..len {
-                output[i] *= compound_gain;
+                output[i] *= gain_compensation;
             }
         }
 
