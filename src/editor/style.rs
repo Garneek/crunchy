@@ -31,13 +31,14 @@ pub(crate) const FERRA_EMBER: Color32 = Color32::from_rgb(224, 107, 117);
 #[allow(dead_code)]
 pub(crate) const FERRA_HONEY: Color32 = Color32::from_rgb(245, 215, 110);
 
-pub(crate) const KNOB_WIDTH: f32 = 38_f32 * 2_f32 + 4.75_f32 + 16_f32;
+pub(crate) const KNOB_WIDTH: f32 = KNOB_PRESET.radius.unwrap() * 2_f32 + 4.75_f32 + 16_f32;
+pub(crate) const SPACE_RIGHT_OF_KNOBS: f32 = WIDTH as f32 * 0.065_f32 + 1_f32;
 
 pub(crate) const BACKGROUND_ROUNDING: f32 = 8_f32;
 pub(crate) const BACKGROUND_OPACITY: f32 = 0.6_f32;
 
 pub(crate) const KNOB_PRESET: KnobPreset = KnobPreset {
-    radius: Some(38_f32),
+    radius: Some(45_f32),
     line_color: Some(FERRA_ROSE),
     background_color: Some(FERRA_ASH),
     text_color_override: Some(FERRA_BLUSH),
@@ -47,7 +48,7 @@ pub(crate) const KNOB_PRESET: KnobPreset = KnobPreset {
     center_to_line_space: None,
     hover_text: Some(true),
     show_center_value: None,
-    text_size: Some(19_f32),
+    text_size: Some(24_f32),
     outline: Some(true),
     padding: None,
     show_label: Some(true),

@@ -50,7 +50,6 @@ impl UserState {
     }
 }
 
-const SPACE_RIGHT_OF_KNOBS: f32 = WIDTH as f32 / 32_f32;
 fn knob_container(ui: &mut egui::Ui, params: Arc<CrunchyParams>, setter: &ParamSetter) {
     ui.horizontal(|ui| {
         ui.add_space(ui.available_width() - SPACE_RIGHT_OF_KNOBS - KNOB_WIDTH * 3_f32);
@@ -90,10 +89,10 @@ fn knob_container(ui: &mut egui::Ui, params: Arc<CrunchyParams>, setter: &ParamS
     });
 }
 
-const TITLE_FONT_SIZE: f32 = 28_f32;
+const TITLE_FONT_SIZE: f32 = 32_f32;
 fn title_card(ui: &mut egui::Ui) {
     ui.vertical_centered(|ui| {
-        ui.add_space(HEIGHT as f32 / 32_f32);
+        ui.add_space(HEIGHT as f32 * (0.02_f32 + (1_f32 / 32_f32)));
         let rect = ui
             .allocate_space(egui::Vec2::new(
                 WIDTH as f32 * 0.8_f32,
@@ -120,7 +119,7 @@ fn title_card(ui: &mut egui::Ui) {
 const AUTHOR_FONT_SIZE: f32 = 12_f32;
 fn author_text(ui: &mut egui::Ui) {
     ui.horizontal(|ui| {
-        ui.add_space(WIDTH as f32 * 0.7_f32 - SPACE_RIGHT_OF_KNOBS - 16_f32);
+        ui.add_space(WIDTH as f32 * 0.7_f32 - SPACE_RIGHT_OF_KNOBS - 15_f32);
 
         let rect = ui
             .allocate_space(egui::Vec2::new(
@@ -176,7 +175,7 @@ pub(crate) fn create(params: Arc<CrunchyParams>, state: Arc<EguiState>) -> Optio
                     background_image(ui, user_state, egui::Frame::none(), "background", |ui| {
                         ui.vertical(|ui| {
                             title_card(ui);
-                            ui.add_space(HEIGHT as f32 * 0.24_f32);
+                            ui.add_space(HEIGHT as f32 * 0.11_f32);
                             knob_container(ui, params.clone(), &setter);
                             ui.add_space(HEIGHT as f32 * 0.020_f32);
                             author_text(ui);
