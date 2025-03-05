@@ -138,7 +138,7 @@ fn author_text(ui: &mut egui::Ui) {
         painter.text(
             rect.center(),
             egui::Align2::CENTER_CENTER,
-            "Crunchy by Garneek",
+            "Crunchy 0.2.1 by Garneek",
             egui::FontId::proportional(AUTHOR_FONT_SIZE),
             FERRA_BLUSH,
         );
