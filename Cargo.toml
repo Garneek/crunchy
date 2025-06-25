@@ -19,7 +19,7 @@ image = {version = "0.25.5", features = ["png"]}
 lazy_static = "1.4.0"
 serde = { version = "1.0", features = ["derive"] }
 
-plugin-utils = { git = "https://github.com/Garneek/plugin-utils.git", branch = "dev"}
+plugin-utils = { git = "https://github.com/Garneek/plugin-utils.git", branch = "main"}
 
 [workspace]
 members = [
