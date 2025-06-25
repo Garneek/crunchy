@@ -102,7 +102,7 @@ fn title_card(ui: &mut egui::Ui) {
         let painter = ui.painter_at(rect);
         ui.painter().rect_filled(
             rect,
-            egui::Rounding::from(BACKGROUND_ROUNDING),
+            egui::CornerRadius::from(BACKGROUND_ROUNDING),
             FERRA_ASH.linear_multiply(BACKGROUND_OPACITY),
         );
 
@@ -130,7 +130,7 @@ fn author_text(ui: &mut egui::Ui) {
         let painter = ui.painter_at(rect);
         ui.painter().rect_filled(
             rect,
-            egui::Rounding::from(BACKGROUND_ROUNDING),
+            egui::CornerRadius::from(BACKGROUND_ROUNDING),
             FERRA_ASH.linear_multiply(BACKGROUND_OPACITY),
         );
 
@@ -157,9 +157,9 @@ pub(crate) fn create(params: Arc<CrunchyParams>, state: Arc<EguiState>) -> Optio
             let mut fonts = egui::FontDefinitions::default();
             fonts.font_data.insert(
                 "futura".to_string(),
-                egui::FontData::from_static(include_bytes!(
+                Arc::new(egui::FontData::from_static(include_bytes!(
                     "../resources/futura/FuturaCondensed.ttf"
-                )),
+                ))),
             );
             fonts
                 .families
@@ -170,9 +170,9 @@ pub(crate) fn create(params: Arc<CrunchyParams>, state: Arc<EguiState>) -> Optio
         },
         move |cx, setter, user_state| {
             CentralPanel::default()
-                .frame(egui::Frame::none())
+                .frame(egui::Frame::NONE)
                 .show(cx, |ui| {
-                    background_image(ui, user_state, egui::Frame::none(), "background", |ui| {
+                    background_image(ui, user_state, egui::Frame::NONE, "background", |ui| {
                         ui.vertical(|ui| {
                             title_card(ui);
                             ui.add_space(HEIGHT as f32 * 0.11_f32);
