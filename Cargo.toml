@@ -12,14 +12,14 @@ default = []
 test = ["plugin-utils/test"]
 
 [dependencies]
-nih_plug = { git = "https://github.com/ardura/nih-plug.git", rev = "de315f902d7b5a75f80bc9d4164e4485bf2b34a1", features = ["assert_process_allocs"] }
-nih_plug_egui = { git = "https://github.com/ardura/nih-plug.git", rev = "de315f902d7b5a75f80bc9d4164e4485bf2b34a1" }
+nih_plug = { git = "https://github.com/Ardura/nih-plug.git", rev = "32e4e96d0d9820f28bcfd22a6cde4c05b5c71a51", features = ["assert_process_allocs"] }
+nih_plug_egui = { git = "https://github.com/Ardura/nih-plug.git", rev = "32e4e96d0d9820f28bcfd22a6cde4c05b5c71a51" }
 
 image = {version = "0.25.5", features = ["png"]}
 lazy_static = "1.4.0"
 serde = { version = "1.0", features = ["derive"] }
 
-plugin-utils = { git = "https://github.com/Garneek/plugin-utils.git", branch = "dev"}
+plugin-utils = { git = "https://github.com/Garneek/plugin-utils.git", branch = "main"}
 
 [workspace]
 members = [
