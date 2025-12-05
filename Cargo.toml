@@ -1,6 +1,6 @@
 [package]
 name = "crunchy-plugin"
-version = "0.2.2"
+version = "0.2.3"
 edition = "2021"
 
 authors = ["Garneek"]
@@ -8,12 +8,14 @@ description = "DCT clip/bitcrush"
 license = "GNU General Public License v3.0"
 
 [features]
+# default = ["test"]
 default = []
 test = ["plugin-utils/test"]
 
 [dependencies]
-nih_plug = { git = "https://github.com/Ardura/nih-plug.git", rev = "32e4e96d0d9820f28bcfd22a6cde4c05b5c71a51", features = ["assert_process_allocs"] }
-nih_plug_egui = { git = "https://github.com/Ardura/nih-plug.git", rev = "32e4e96d0d9820f28bcfd22a6cde4c05b5c71a51" }
+
+nih_plug = { git = "https://github.com/ardura/nih-plug.git", features = ["assert_process_allocs"] }
+nih_plug_egui = { git = "https://github.com/ardura/nih-plug.git" }
 
 image = {version = "0.25.5", features = ["png"]}
 lazy_static = "1.4.0"

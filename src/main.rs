@@ -34,7 +34,7 @@ macro_rules! plot_param_rms {
 fn main() {
     use crunchy_plugin::CrunchyParams;
     use crunchy_plugin::CrunchyParamsBlock;
-    // use plugin_utils::dsp_utils::benchmark;
+    use plugin_utils::dsp_utils::benchmark;
     use plugin_utils::dsp_utils::plot;
     use plugin_utils::dsp_utils::PlotParamData;
     use plugin_utils::dsp_utils::PlotType;
@@ -68,14 +68,15 @@ fn main() {
     };
     // plot_param_rms!(crunch, "crunch", pr_params, zero_params);
     // plot_param_rms!(crush, "crush", pr_params, zero_params);
+    plot_param_rms!(mix, "mix", pr_params, zero_params);
 
-    // benchmark::<crunchy_plugin::CrunchySingleChannelProcessor>(
-    //     Arc::new(CrunchyParams::default()),
-    //     default_params,
-    //     64,
-    //     440,
-    //     "herdbound.mp3",
-    // );
+    benchmark::<crunchy_plugin::CrunchySingleChannelProcessor>(
+        Arc::new(CrunchyParams::default()),
+        default_params,
+        64,
+        440,
+        "herdbound.mp3",
+    );
 }
 
 #[cfg(not(feature = "test"))]
