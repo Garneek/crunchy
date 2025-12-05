@@ -2,9 +2,6 @@ use nih_plug::prelude::ParamSetter;
 
 use plugin_utils::egui_utils::*;
 
-mod style;
-use style::*;
-
 use crate::CrunchyParams;
 use std::collections::HashMap;
 use std::sync::Arc;
@@ -17,6 +14,23 @@ use nih_plug_egui::create_egui_editor;
 use nih_plug_egui::egui;
 use nih_plug_egui::egui::CentralPanel;
 use nih_plug_egui::EguiState;
+
+pub(crate) const WIDTH: u32 = 400;
+pub(crate) const HEIGHT: u32 = 488;
+
+pub(crate) const SPACE_RIGHT_OF_KNOBS: f32 = WIDTH as f32 * 0.065_f32 + 1_f32;
+
+pub(crate) const BACKGROUND_ROUNDING: f32 = 8_f32;
+pub(crate) const BACKGROUND_OPACITY: f32 = 0.65_f32;
+
+const WIDGET_STYLE: WidgetStyle = WidgetStyle::const_default()
+    .set_size(96_f32)
+    .set_text_size(24_f32)
+    .set_background_opacity(BACKGROUND_OPACITY)
+    .set_text_backdrop_color(premult_color32(
+        ferra_color::FERRA_UMBER,
+        BACKGROUND_OPACITY,
+    ));
 
 fn load_images(cx: &egui::Context) -> HashMap<&'static str, egui::TextureHandle> {
     let mut map = HashMap::new();
@@ -51,42 +65,43 @@ impl UserState {
 }
 
 fn knob_container(ui: &mut egui::Ui, params: Arc<CrunchyParams>, setter: &ParamSetter) {
-    ui.horizontal(|ui| {
-        ui.add_space(ui.available_width() - SPACE_RIGHT_OF_KNOBS - KNOB_WIDTH * 3_f32);
-        ui.add(
-            ArcKnob::for_param(&params.drive, setter, 0_f32, KnobLayout::Vertical)
-                .apply_preset(&KNOB_PRESET)
-                .set_hover_text("Gain applied before further processing".to_string()),
-        );
-        ui.add(
-            ArcKnob::for_param(&params.crunch, setter, 0_f32, KnobLayout::Vertical)
-                .apply_preset(&KNOB_PRESET)
-                .set_hover_text(
-                    "Clip applied to the frequency components of the sound".to_string(),
-                ),
-        );
-        ui.add(
-            ArcKnob::for_param(&params.crush, setter, 0_f32, KnobLayout::Vertical)
-                .apply_preset(&KNOB_PRESET)
-                .set_hover_text(
-                    "Bitcrusher applied to the frequency components of the sound".to_string(),
-                ),
-        );
-    });
-    ui.add_space(KNOB_PRESET.radius.unwrap_or(0_f32) * 0.25);
-    ui.horizontal(|ui| {
-        ui.add_space(ui.available_width() - SPACE_RIGHT_OF_KNOBS - KNOB_WIDTH * 2_f32);
-        ui.add(
-            ArcKnob::for_param(&params.mix, setter, 0_f32, KnobLayout::Vertical)
-                .apply_preset(&KNOB_PRESET)
-                .set_hover_text("Amount of wet signal vs dry signal".to_string()),
-        );
-        ui.add(
-            ArcKnob::for_param(&params.gain, setter, 0_f32, KnobLayout::Vertical)
-                .apply_preset(&KNOB_PRESET)
-                .set_hover_text("Gain applied after all processing".to_string()),
-        );
-    });
+    ui.with_layout(
+        nih_plug_egui::egui::Layout::right_to_left(egui::Align::Min),
+        |ui| {
+            ui.add_space(SPACE_RIGHT_OF_KNOBS);
+            ui.add(
+                ArcKnob::new(&params.crush, setter, KnobLayout::Vertical, &WIDGET_STYLE)
+                    .set_hover_text(
+                        "Bitcrusher applied to the frequency components of the sound".to_string(),
+                    ),
+            );
+            ui.add(
+                ArcKnob::new(&params.crunch, setter, KnobLayout::Vertical, &WIDGET_STYLE)
+                    .set_hover_text(
+                        "Clip applied to the frequency components of the sound".to_string(),
+                    ),
+            );
+            ui.add(
+                ArcKnob::new(&params.drive, setter, KnobLayout::Vertical, &WIDGET_STYLE)
+                    .set_hover_text("Gain applied before further processing".to_string()),
+            );
+        },
+    );
+    ui.add_space(WIDGET_STYLE.element_size * 0.06_f32);
+    ui.with_layout(
+        nih_plug_egui::egui::Layout::right_to_left(egui::Align::Min),
+        |ui| {
+            ui.add_space(SPACE_RIGHT_OF_KNOBS);
+            ui.add(
+                ArcKnob::new(&params.gain, setter, KnobLayout::Vertical, &WIDGET_STYLE)
+                    .set_hover_text("Gain applied after all processing".to_string()),
+            );
+            ui.add(
+                ArcKnob::new(&params.mix, setter, KnobLayout::Vertical, &WIDGET_STYLE)
+                    .set_hover_text("Amount of wet signal vs dry signal".to_string()),
+            );
+        },
+    );
 }
 
 const TITLE_FONT_SIZE: f32 = 32_f32;
@@ -95,15 +110,15 @@ fn title_card(ui: &mut egui::Ui) {
         ui.add_space(HEIGHT as f32 * (0.02_f32 + (1_f32 / 32_f32)));
         let rect = ui
             .allocate_space(egui::Vec2::new(
-                WIDTH as f32 * 0.8_f32,
+                WIDTH as f32 - (SPACE_RIGHT_OF_KNOBS * 2_f32),
                 HEIGHT as f32 * 0.1_f32,
             ))
             .1;
         let painter = ui.painter_at(rect);
         ui.painter().rect_filled(
             rect,
-            egui::Rounding::from(BACKGROUND_ROUNDING),
-            FERRA_ASH.linear_multiply(BACKGROUND_OPACITY),
+            egui::CornerRadius::from(BACKGROUND_ROUNDING),
+            ferra_color::FERRA_ASH.linear_multiply(BACKGROUND_OPACITY),
         );
 
         painter.text(
@@ -111,37 +126,40 @@ fn title_card(ui: &mut egui::Ui) {
             egui::Align2::CENTER_CENTER,
             "Jest kranczips, jest impreza",
             egui::FontId::proportional(TITLE_FONT_SIZE),
-            FERRA_BLUSH,
+            ferra_color::FERRA_BLUSH,
         );
     });
 }
 
 const AUTHOR_FONT_SIZE: f32 = 12_f32;
 fn author_text(ui: &mut egui::Ui) {
-    ui.horizontal(|ui| {
-        ui.add_space(WIDTH as f32 * 0.7_f32 - SPACE_RIGHT_OF_KNOBS - 15_f32);
+    ui.with_layout(
+        nih_plug_egui::egui::Layout::right_to_left(egui::Align::Min),
+        |ui| {
+            ui.add_space(SPACE_RIGHT_OF_KNOBS);
 
-        let rect = ui
-            .allocate_space(egui::Vec2::new(
-                WIDTH as f32 * 0.3_f32,
-                HEIGHT as f32 * 0.05_f32,
-            ))
-            .1;
-        let painter = ui.painter_at(rect);
-        ui.painter().rect_filled(
-            rect,
-            egui::Rounding::from(BACKGROUND_ROUNDING),
-            FERRA_ASH.linear_multiply(BACKGROUND_OPACITY),
-        );
+            let rect = ui
+                .allocate_space(egui::Vec2::new(
+                    WIDTH as f32 * 0.3_f32,
+                    HEIGHT as f32 * 0.05_f32,
+                ))
+                .1;
+            let painter = ui.painter_at(rect);
+            ui.painter().rect_filled(
+                rect,
+                egui::CornerRadius::from(BACKGROUND_ROUNDING),
+                ferra_color::FERRA_ASH.linear_multiply(BACKGROUND_OPACITY),
+            );
 
-        painter.text(
-            rect.center(),
-            egui::Align2::CENTER_CENTER,
-            "Crunchy 0.2.1 by Garneek",
-            egui::FontId::proportional(AUTHOR_FONT_SIZE),
-            FERRA_BLUSH,
-        );
-    });
+            painter.text(
+                rect.center(),
+                egui::Align2::CENTER_CENTER,
+                "Crunchy 0.2.3 by Garneek",
+                egui::FontId::proportional(AUTHOR_FONT_SIZE),
+                ferra_color::FERRA_BLUSH,
+            );
+        },
+    );
 }
 
 pub(crate) fn default_state() -> Arc<EguiState> {
@@ -157,9 +175,9 @@ pub(crate) fn create(params: Arc<CrunchyParams>, state: Arc<EguiState>) -> Optio
             let mut fonts = egui::FontDefinitions::default();
             fonts.font_data.insert(
                 "futura".to_string(),
-                egui::FontData::from_static(include_bytes!(
+                Arc::new(egui::FontData::from_static(include_bytes!(
                     "../resources/futura/FuturaCondensed.ttf"
-                )),
+                ))),
             );
             fonts
                 .families
@@ -170,14 +188,14 @@ pub(crate) fn create(params: Arc<CrunchyParams>, state: Arc<EguiState>) -> Optio
         },
         move |cx, setter, user_state| {
             CentralPanel::default()
-                .frame(egui::Frame::none())
+                .frame(egui::Frame::NONE)
                 .show(cx, |ui| {
-                    background_image(ui, user_state, egui::Frame::none(), "background", |ui| {
+                    background_image(ui, user_state, egui::Frame::NONE, "background", |ui| {
                         ui.vertical(|ui| {
                             title_card(ui);
                             ui.add_space(HEIGHT as f32 * 0.11_f32);
                             knob_container(ui, params.clone(), &setter);
-                            ui.add_space(HEIGHT as f32 * 0.020_f32);
+                            ui.add_space(HEIGHT as f32 * 0.025_f32);
                             author_text(ui);
                         });
                     });

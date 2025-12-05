@@ -9,9 +9,6 @@ pub use dsp::CrunchyParamsBlock;
 pub use dsp::CrunchySingleChannelProcessor;
 pub use plugin_utils::dsp_utils::DspCoreProcessor;
 
-// TODO
-// [ ] - Rethink names of the effects
-
 const BLOCK_SIZE: usize = 64;
 
 struct Crunchy {
@@ -169,6 +166,7 @@ impl Plugin for Crunchy {
                     return false;
                 }
             },
+            0_f32,
         ));
         true
     }

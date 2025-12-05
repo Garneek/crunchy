@@ -3,13 +3,17 @@ use std::sync::Arc;
 
 use nih_plug::plugin::ProcessStatus;
 
+use plugin_utils::dsp_utils::algorithms::HannWindow;
+use plugin_utils::dsp_utils::algorithms::Process;
+use plugin_utils::dsp_utils::algorithms::WindowedProcess;
+use plugin_utils::dsp_utils::algorithms::DCT;
+
 use plugin_utils::dsp_utils::numerical_functions::quartic;
 use plugin_utils::dsp_utils::rescale_normalized_value;
 use plugin_utils::dsp_utils::rescalers::ln;
 use plugin_utils::dsp_utils::rescalers::ln_reversed_unscaled_default;
 use plugin_utils::dsp_utils::ParamsBlock;
 use plugin_utils::dsp_utils::SingleChannelProcessor;
-use plugin_utils::dsp_utils::MDCT;
 
 const CRUSH_RESCALE_MIN: f32 = 0.1_f32;
 const CRUSH_RESCALE_MAX: f32 = 0.98_f32;
@@ -28,49 +32,31 @@ const CRUNCH_MULTIPLIER: f32 = 0.1_f32;
 const CRUNCH_CLAMP_A: f32 = -4.99_f32;
 const CRUNCH_CLAMP_B: f32 = 5_f32;
 
-pub struct CrunchySingleChannelProcessor {
-    mdct: MDCT,
+pub struct DCTProcess {
     block_size: usize,
-
-    dct_buffer: Vec<f32>,
-
-    delay_buffer: Vec<f32>,
-    mix_buffer: Vec<f32>,
+    dct: DCT,
+    temp: Vec<f32>,
 }
 
-impl SingleChannelProcessor for CrunchySingleChannelProcessor {
-    type ParamsBlock = CrunchyParamsBlock;
+impl Process for DCTProcess {
+    type Message = f32;
+    type Data = CrunchyParamsBlock;
 
     fn new(block_size: usize) -> Self {
         Self {
-            mdct: MDCT::new(block_size),
             block_size,
-            dct_buffer: vec![0_f32; block_size * 2],
-            mix_buffer: vec![0_f32; block_size],
-            delay_buffer: vec![0_f32; block_size],
+            dct: DCT::new(block_size * 2),
+            temp: vec![0_f32; block_size * 2],
         }
     }
 
-    fn process(
-        &mut self,
-        block: &[f32],
-        output: &mut [f32],
-        params_block: &Self::ParamsBlock,
-    ) -> nih_plug::prelude::ProcessStatus {
-        let len: usize = block.len();
-        // Clone block for mix
-        self.delay_buffer.copy_from_slice(block);
-        // Apply drive
-        for i in 0..len {
-            output[i] = block[i] * params_block.drive[i];
-        }
+    fn process(&mut self, block: &mut [f32], data: &Self::Data) -> Self::Message {
+        self.dct.dct(block, self.temp.as_mut_slice());
 
-        self.mdct.mdct(output, self.dct_buffer.as_mut_slice());
-
-        let mut gain_compensation = 0_f32;
+        let mut gain_compensation = 1_f32;
 
         // Apply crush effect. Bitcrushes DCT coefficients
-        let crush = params_block.crush[self.block_size / 2];
+        let crush = data.crush[self.block_size / 2];
         if crush != 0_f32 {
             // Scale value from [0, 1] to [A, B], to remove extreme values, which either do
             // not affect the sound, or silence it completely
@@ -89,13 +75,12 @@ impl SingleChannelProcessor for CrunchySingleChannelProcessor {
 
             // Bitcrush all DCT coefficients
             for i in 0..self.block_size * 2 {
-                self.dct_buffer[i] =
-                    (self.dct_buffer[i] * crush_multiplier).round() / crush_multiplier;
+                block[i] = (block[i] * crush_multiplier).round() / crush_multiplier;
             }
         }
 
         // Apply crunch effect. Clips the DCT coefficients
-        let crunch = params_block.crunch[self.block_size / 2];
+        let crunch = data.crunch[self.block_size / 2];
         if crunch != 0_f32 {
             // Calculate gain compensation
             gain_compensation *= 0.1_f32.powf(
@@ -122,14 +107,53 @@ impl SingleChannelProcessor for CrunchySingleChannelProcessor {
 
             // Clamp DCT coefficients
             for i in 0..self.block_size * 2 {
-                self.dct_buffer[i] = self.dct_buffer[i].clamp(
+                block[i] = block[i].clamp(
                     -CRUNCH_MULTIPLIER * crunch_clamp,
                     CRUNCH_MULTIPLIER * crunch_clamp,
                 );
             }
         }
 
-        self.mdct.imdct(self.dct_buffer.as_mut_slice(), output);
+        self.dct.idct(block, &mut self.temp);
+
+        gain_compensation
+    }
+}
+
+pub struct CrunchySingleChannelProcessor {
+    windowed_process: WindowedProcess<DCTProcess, HannWindow>,
+
+    delay_buffer: Vec<f32>,
+    mix_buffer: Vec<f32>,
+}
+
+impl SingleChannelProcessor for CrunchySingleChannelProcessor {
+    type ParamsBlock = CrunchyParamsBlock;
+
+    fn new(block_size: usize, _sample_rate: f32, _params: Arc<CrunchyParams>) -> Self {
+        Self {
+            windowed_process: WindowedProcess::new(block_size, false, true),
+            mix_buffer: vec![0_f32; block_size],
+            delay_buffer: vec![0_f32; block_size],
+        }
+    }
+
+    fn process(
+        &mut self,
+        block: &[f32],
+        output: &mut [f32],
+        params_block: &Self::ParamsBlock,
+    ) -> nih_plug::prelude::ProcessStatus {
+        let len: usize = block.len();
+        // Clone block for mix
+        self.delay_buffer.copy_from_slice(block);
+        // Apply drive
+        for i in 0..len {
+            output[i] = block[i] * params_block.drive[i];
+        }
+
+        // Do processing on DCT
+        let gain_compensation = self.windowed_process.process(output, params_block);
 
         // Apply gain correction
         if gain_compensation != 1_f32 {
