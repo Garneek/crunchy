@@ -1,19 +1,16 @@
 # crunchy
 An audio effect plugin in rust, using nih_plug. Clips and bitcrushes DCT coefficients of the soundwave, resulting in either raw, mostly high-pitched screaming sound, or weird wobbly effect somewhat similiar to reducing bitrate in mp3 files. 
-The project is still very much work in progress and might not work on all DAWs.
+
+![preview](resources/crunchy.jpg)
 
 # Compiling
 Run
 ``cargo xtask bundle crunchy-plugin --release``
 in project root
 
-# Known issues
-- the knobs do not redraw correctly on small parameter changes
-- when both effects are maxed out the sound is fully muted
-
-# TODO
-- rethink the names of parameters as they might be confusing
-- test the plugin on all platforms
-- benchmark the following DCT optimisations:
-- > Fixed point numbers
-- > 10.1016/j.dsp.2008.11.004
+# Parameters
+- **Drive** - gain applied before other effects
+- **Crunch** - clips DCT coefficients of input, removing most lower frequencies and resulting in a sound similar to a more traditional distortion
+- **Crush** - bitcrushes DCT coefficients, removing detail from the sound while also producing artifacts
+- **Mix** - proportion of dry to wet signal
+- **Gain** - gain applied after everything else
